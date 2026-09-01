@@ -1,5 +1,9 @@
 # FleetRabbit — E2E CRUD Test Automation
 
+<div align="center">
+  <img src="assets/logo.png" alt="Fleet Rabbit Logo" width="120" />
+</div>
+
 ![Playwright](https://img.shields.io/badge/Playwright-1.48-2EAD33?logo=playwright&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?logo=typescript&logoColor=white)
 ![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)
