@@ -10,6 +10,25 @@ A Playwright + TypeScript end-to-end test automation suite built from scratch fo
 
 ---
 
+## About the product being tested
+
+**FleetRabbit** is a modern SaaS platform for managing fleet operations, drivers, vehicles, and compliance, built with Next.js, React, and TypeScript.
+
+Key product features:
+- **Dashboard Analytics** — real-time metrics for fleet performance, revenue, and compliance
+- **Driver Management** — safety scores, HOS (Hours of Service) compliance, and availability tracking
+- **Vehicle Management** — maintenance schedules and live location monitoring
+- **Load Management** — create, assign, and track loads with real-time progress
+- **DVIR (Driver Vehicle Inspection Reports)** — digital inspection reports with photo attachments
+- **Fuel Management** — consumption, cost, and MPG analytics
+- **Maintenance & Work Orders** — scheduling and tracking
+- **AI-Powered Chatbot** — intelligent assistant for fleet operations
+- **Multi-tenant, role-based architecture** — organization-based data isolation with Admin/Driver roles
+
+This repository covers the automated test coverage layer for the product above — it does not include the product's own source code, infrastructure, or deployment configuration.
+
+---
+
 ## Why this project
 
 Manually regression-testing 21 modules before every release doesn't scale. This suite replaces that manual pass with an automated one: every module's core lifecycle — create a record, verify it appears, edit it, delete it — runs unattended against staging, on every push, with failure evidence (screenshots, video, trace) captured automatically.
