@@ -1,0 +1,15 @@
+{
+  "name": "fleetrabbit-e2e-crud-automation",
+  "version": "1.0.0",
+  "description": "Playwright E2E CRUD test automation suite for the FleetRabbit fleet management portal — 21 modules, 88 test cases.",
+  "private": true,
+  "scripts": {
+    "test": "playwright test --project=chromium",
+    "test:headed": "playwright test --project=chromium --headed",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "typescript": "^5.5.0"
+  }
+}

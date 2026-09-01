@@ -1,0 +1,214 @@
+name: E2E CRUD Regression (21 Modules)
+
+# Runs the full 21-module / 88-test-case CRUD automation suite against
+# staging, split into the same 3 sets validated manually on 2026-08-24
+# (Set 1 = 01-07, 31 cases incl. setup | Set 2 = 08-14, 27 cases incl.
+# setup | Set 3 = 15-21, 33 cases incl. setup). Headless in CI — headed
+# mode is for local interactive debugging only, never for CI.
+#
+# Wire this to run after every deploy to stg, and treat the final
+# `e2e-gate` job as a required status check before promoting stg -> prod.
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [stg]
+  pull_request:
+    branches: [stg]
+
+concurrency:
+  group: e2e-crud-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  BASE_URL: https://stg.fleetrabbit.com
+  CI: "true"
+
+jobs:
+  set-01-07:
+    name: "Set 1 (01-07): Suppliers → Tires"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browser (chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: Run modules 01-07 (Suppliers, Parts-Inventory, Purchase-Orders, Recalls, Compliance, Fuel, Tires)
+        run: |
+          npx playwright test \
+            tests/suppliers-crud.spec.ts \
+            tests/parts-inventory-crud.spec.ts \
+            tests/purchase-orders-crud.spec.ts \
+            tests/recalls-crud.spec.ts \
+            tests/compliance-crud.spec.ts \
+            tests/fuel-crud.spec.ts \
+            tests/tires-crud.spec.ts \
+            --project=chromium --reporter=list,html,json
+
+      - name: Upload HTML report (set 01-07)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-01-07
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload failure traces/screenshots/videos (set 01-07)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-01-07
+          path: test-results/
+          retention-days: 14
+
+  set-08-14:
+    name: "Set 2 (08-14): Service Programs → DVIR"
+    needs: set-01-07
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browser (chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: Run modules 08-14 (Service Programs, Service Tasks, PM Schedules, Maint Requests, Work Orders, Logbook, DVIR)
+        run: |
+          npx playwright test \
+            tests/service-programs-crud.spec.ts \
+            tests/service-tasks-crud.spec.ts \
+            tests/pm-schedules-crud.spec.ts \
+            tests/maint-requests-crud.spec.ts \
+            tests/work-orders-crud.spec.ts \
+            tests/logbook-crud.spec.ts \
+            tests/dvir-crud.spec.ts \
+            --project=chromium --reporter=list,html,json
+
+      - name: Upload HTML report (set 08-14)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-08-14
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload failure traces/screenshots/videos (set 08-14)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-08-14
+          path: test-results/
+          retention-days: 14
+
+  set-15-21:
+    name: "Set 3 (15-21): Dispatch → Inspection Reports"
+    needs: set-08-14
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browser (chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: Run module 15 (Dispatch)
+        run: npx playwright test tests/dispatch-crud.spec.ts --project=chromium --reporter=list,html,json
+
+      # 17 (Team Members) MUST run before 16 (Fleet): tm-crud signs up a
+      # fresh account and writes test-credentials.json, which fleet-crud
+      # reads. Running fleet first fails with "No stored credentials!".
+      - name: Run module 17 (Team Members — signs up fresh account)
+        run: npx playwright test tests/tm-crud.spec.ts --project=auth-tests --reporter=list,html,json
+
+      - name: Run module 16 (Fleet — depends on module 17's stored account)
+        run: npx playwright test tests/fleet-crud.spec.ts --project=chromium --reporter=list,html,json
+
+      - name: Run modules 18-21 (Inspections Checklist, Inspection Reminders, Incident Reports, Inspection Reports)
+        run: |
+          npx playwright test \
+            tests/inspections-checklist-crud.spec.ts \
+            tests/inspections-reminders-crud.spec.ts \
+            tests/incident-reports-crud.spec.ts \
+            tests/inspection-reports-crud.spec.ts \
+            --project=chromium --reporter=list,html,json
+
+      - name: Upload HTML report (set 15-21)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-15-21
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload failure traces/screenshots/videos (set 15-21)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-15-21
+          path: test-results/
+          retention-days: 14
+
+  e2e-gate:
+    name: "E2E Gate (all 21 modules / 88 test cases green)"
+    needs: [set-01-07, set-08-14, set-15-21]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mark pipeline green
+        run: |
+          echo "## ✅ E2E CRUD Regression — All 3 sets passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Set | Modules | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 1 (01-07) | Suppliers, Parts-Inventory, Purchase-Orders, Recalls, Compliance, Fuel, Tires | ✅ |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 2 (08-14) | Service Programs, Service Tasks, PM Schedules, Maint Requests, Work Orders, Logbook, DVIR | ✅ |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 3 (15-21) | Dispatch, Team Members, Fleet, Inspections Checklist, Inspection Reminders, Incident Reports, Inspection Reports | ✅ |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Safe to promote stg -> production." >> "$GITHUB_STEP_SUMMARY"
